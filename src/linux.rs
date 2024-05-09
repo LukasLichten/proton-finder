@@ -285,18 +285,24 @@ impl ProtonPrefix {
         self.game
     }
 
+    /// Returns the prefix folder,
+    /// containing the dosdevices folder, and registry files
     pub fn get_pfx_path(&self) -> PathBuf {
         self.pfx.clone()
     }
 
+    /// Returns what is treated as the C drive within the prefix
     pub fn get_c_drive(&self) -> PathBuf {
         self.parse_windows_path("C:\\")
     }
 
-    pub fn home(&self) -> Option<PathBuf> {
+    /// Returns the home folder for the user within the prefix,
+    /// usually C:\Users\%username%
+    pub fn home_dir(&self) -> Option<PathBuf> {
         self.get_path_from_registry(REG_VOLATILE, "USERPROFILE")
     }
 
+    /// Returns the AppData\Roaming folder within the Home folder within the prefix
     pub fn appdata_roaming(&self) -> Option<PathBuf> {
         self.get_path_from_registry(REG_SHELL_FOLDERS, "AppData")
     }
