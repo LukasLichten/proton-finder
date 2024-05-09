@@ -1,4 +1,4 @@
-# Proton-Prefix
+# Proton-Finder
 Rust library for finding and working with steams proton prefixes, and accessing common paths within them.  
 Additionally providing a universal wrapper to allow one codebase for Windows and Linux support.  
 

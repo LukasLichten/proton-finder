@@ -3,7 +3,19 @@ name = "proton-finder"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Cross platform library for finding and pathing through proton prefixes"
+repository = "https://github.com/LukasLichten/proton-finder"
+readme = "README.md"
+license = "MIT"
+keywords = ["steam","proton","steamapps","wine","directory"]
+categories = ["filesystem"]
+
+exclude = ["src/test.rs"]
+
+[badges]
+maintenance = { status = "actively-developed" }
+# Once all dirs functions are replicated and found functional it will be moved to passively
+
 [features]
 no_tricks = []
 
