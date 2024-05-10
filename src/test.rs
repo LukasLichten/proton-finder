@@ -101,16 +101,63 @@ pub fn universal_find_holocure_c_drive() {
     // But it can fail under Linux if HoloCure is not installed (like for the tests above)
 
     let path = get_game_drive_helper(2420510).c_drive();
-    assert!(path.is_dir(), "C drive for within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+    assert!(path.is_dir(), "C drive within enviroment for HoloCure not found: {}", path.to_str().unwrap());
 }
 
 #[test]
 pub fn universal_find_holocure_user_folder() {
-    // This test can never fail under windows
+    // This test can fail under Windows (but incredibly unlikely)
     // But it can fail under Linux if HoloCure is not installed (like for the tests above)
 
     let path = get_game_drive_helper(2420510).home_dir();
-    assert!(path.is_some(), "Home folder for within enviroment for HoloCure not found: None returned");
+    assert!(path.is_some(), "Home folder within enviroment for HoloCure not found: None returned");
     let path = path.unwrap();
-    assert!(path.is_dir(), "Home folder for within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+    assert!(path.is_dir(), "Home folder within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+}
+
+#[test]
+pub fn universal_find_holocure_public() {
+    // This test can fail under Windows (but incredibly unlikely)
+    // But it can fail under Linux if HoloCure is not installed (like for the tests above)
+
+    let path = get_game_drive_helper(2420510).public_dir();
+    assert!(path.is_some(), "Public folder within enviroment for HoloCure not found: None returned");
+    let path = path.unwrap();
+    assert!(path.is_dir(), "Public folder within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+}
+
+#[test]
+pub fn universal_find_holocure_version_ini() {
+    // This test can fail under Windows Linux if HoloCure is not installed and not launched at least once
+    // (it could also break if the version.ini is removed by the HoloCure dev)
+
+    let path = get_game_drive_helper(2420510).config_local_dir();
+    assert!(path.is_some(), "AppData\\Local folder within enviroment for HoloCure not found: None returned");
+    let mut path = path.unwrap();
+    assert!(path.is_dir(), "AppData\\Local within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+    path.push("HoloCure");
+    assert!(path.is_dir(), "HoloCure save folder within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+    path.push("version.ini");
+    assert!(path.is_file(), "HoloCure save version.ini file within enviroment for HoloCure not found: {}", path.to_str().unwrap());
+}
+
+fn example() {
+    let res = crate::get_game_drive(2420510).map_or_else(|e| {
+        println!("Steam Dir provided is not correctly formated, ignored...");
+        e
+    }, |k| k);
+
+    if let Some(game_drive) = res {
+        if let Some(mut path) = game_drive.config_local_dir() {
+            path.push("HoloCure");
+            path.push("settings.json");
+            if let Ok(text) = std::fs::read_to_string(path) {
+                println!("{}", text);
+            }
+        } else {
+            println!("Unable to find AppData\\Local (Something has gone horribly wrong)")
+        }
+    } else {
+        println!("Unable to find game drive. Did you install the game?");
+    }
 }

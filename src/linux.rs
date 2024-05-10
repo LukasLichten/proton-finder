@@ -129,7 +129,7 @@ pub fn steam_root_env() -> Result<SteamRoot, bool> {
 
 // Common Steam Paths
 const STEAM_DOT_STEAM: &str = "~/.steam/steam";
-const STEAM_LOCAL_SHARE: &str = "~/.local/share/steam";
+const STEAM_LOCAL_SHARE: &str = "~/.local/share/Steam";
 const STEAM_FLATPAK: &str = "~/.var/app/com.valvesoftware.Steam/data/Steam/";
 
 /// Returns the first steam root found.
@@ -297,7 +297,7 @@ impl ProtonPrefix {
     }
 
     /// Returns the home folder for the user within the prefix,
-    /// usually C:\Users\%username%
+    /// usually `C:\Users\username`
     pub fn home_dir(&self) -> Option<PathBuf> {
         self.get_path_from_registry(REG_VOLATILE, "USERPROFILE")
     }
@@ -305,6 +305,47 @@ impl ProtonPrefix {
     /// Returns the AppData\Roaming folder within the Home folder within the prefix
     pub fn appdata_roaming(&self) -> Option<PathBuf> {
         self.get_path_from_registry(REG_SHELL_FOLDERS, "AppData")
+    }
+
+    /// Returns the AppData\Local folder within the Home folder within the prefix
+    pub fn appdata_local(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "Local AppData")
+    }
+
+    /// Returns the AppData\LocalLow folder within the Home folder within the prefix
+    pub fn appdata_local_low(&self) -> Option<PathBuf> {
+        // Yeah, this is the key of hell... but if it works...
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "{A520A1A4-1780-4FF6-BD18-167343C5AF16}")
+    }
+
+    /// Returns the Music folder within the Home folder within the prefix
+    pub fn music_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "My Music")
+    }
+
+    /// Returns the Videos folder within the Home folder within the prefix
+    pub fn videos_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "My Videos")
+    }
+
+    /// Returns the Pictures folder within the Home folder within the prefix
+    pub fn picture_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "My Pictures")
+    }
+
+    /// Returns the Documents folder within the Home folder within the prefix
+    pub fn documents_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "Personal")
+    }
+
+    /// Returns the Downloads folder within the Home folder within the prefix
+    pub fn downloads_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "{374DE290-123F-4565-9164-39C4925E467B}")
+    }
+
+    /// Returns the Desktop folder within the Home folder within the prefix
+    pub fn desktop_dir(&self) -> Option<PathBuf> {
+        self.get_path_from_registry(REG_SHELL_FOLDERS, "Desktop")
     }
 
     fn get_path_from_registry(&self, key: &str, sub_key: &str) -> Option<PathBuf> {
@@ -320,6 +361,22 @@ impl ProtonPrefix {
 
         None
     }
+
+    /// Returns the public user folder within the prefix
+    pub fn public_user_dir(&self) -> Option<PathBuf> {
+        let mut user_reg = self.pfx.clone();
+        user_reg.push("system.reg");
+        if let Some(user_reg) = RegParser::new(user_reg) {
+            if let Some(val) = user_reg.open_key("Software\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList") {
+                if let Some(path) = val.get("Public") {
+                    return self.parse_windows_path(path).canonicalize().ok();
+                }
+            }
+        }
+
+        None
+    }
+
 
     /// Turns a string with a absolute windows formated path
     /// into the complete path within this prefix

@@ -7,7 +7,8 @@ pub mod linux;
 #[cfg(test)]
 pub mod test;
 
-/// An Abstraction for ProtonPrefix under Linux/Native Filesystem under Windows
+/// An Abstraction for ProtonPrefix under Linux/Native Filesystem under Windows,
+/// that acts like the dirs library
 ///
 /// Under Windows, this is a wrapper for dirs
 /// Under Linux, it will return you the same paths within the prefix as dirs would
@@ -84,8 +85,8 @@ impl GameDrive {
         PathBuf::new()
     }
 
-    // This works like `dirs::home_dir` under Windows would
-    // returning `C:\Users\%username%`
+    /// This works like `dirs::home_dir` under Windows would
+    /// returning `C:\Users\username`
     pub fn home_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::home_dir();
@@ -98,18 +99,178 @@ impl GameDrive {
         None
     }
 
-    // This works like `dirs::data_dir` under Windows would
-    // returning `C:\Users\%username%\AppData\Roaming`
-    pub fn data_dir(&self) -> Option<PathBuf> {
+    /// This works like `dirs::data_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Roaming`
+    pub fn config_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
-        return dirs::data_dir();
+        return dirs::config_dir();
 
         #[cfg(target_os = "linux")]
-        return self.prefix.home_dir();
+        return self.prefix.appdata_roaming();
 
         
         #[cfg(not(any(target_os = "linux", target_os = "windows")))]
         None
     }
 
+    /// This works like `dirs::preference_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Roaming`
+    /// this uses config_dir() internally
+    pub fn preference_dir(&self) -> Option<PathBuf> {
+        self.config_dir()
+    }
+
+    /// This works like `dirs::data_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Roaming`
+    /// this uses config_dir() internally
+    pub fn data_dir(&self) -> Option<PathBuf> {
+        self.config_dir()
+    }
+
+    /// This works like `dirs::config_local_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Local`
+    pub fn config_local_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::config_local_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.appdata_local();
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs::cache_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Local`
+    /// this uses config_local_dir() internally
+    pub fn cache_dir(&self) -> Option<PathBuf> {
+        self.config_local_dir()
+    }
+
+    /// This works like `dirs::data_local_dir` under Windows would
+    /// returning `C:\Users\username\AppData\Local`
+    /// this uses config_local_dir() internally
+    pub fn data_local_dir(&self) -> Option<PathBuf> {
+        self.config_local_dir()
+    }
+
+    /// This does not have an equivalent within dirs
+    /// it returns `C:\Users\username\AppData\LocalLow`
+    pub fn config_local_low_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        {
+            let mut path = dirs::home_dir()?;
+            path.push("AppData");
+            path.push("LocalLow");
+            if path.is_dir() {
+                return Some(path);
+            } else {
+                return None;
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.appdata_local_low();
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs::audio_dir` under Windows would
+    /// returning `C:\Users\username\Music`
+    pub fn audio_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::audio_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.music_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs::video_dir` under Windows would
+    /// returning `C:\Users\username\Videos`
+    pub fn video_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::video_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.videos_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs::picture_dir` under Windows would
+    /// returning `C:\Users\username\Pictures`
+    pub fn picture_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::picture_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.picture_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs:document_dir` under Windows would
+    /// returning `C:\Users\username\Documents`
+    pub fn document_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::document_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.documents_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs:download_dir` under Windows would
+    /// returning `C:\Users\username\Downloads`
+    pub fn download_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::download_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.downloads_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs:deskop_dir` under Windows would
+    /// returning `C:\Users\username\Desktop`
+    pub fn desktop_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::desktop_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.desktop_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
+
+    /// This works like `dirs:public_dir` under Windows would
+    /// returning `C:\Users\Public`
+    pub fn public_dir(&self) -> Option<PathBuf> {
+        #[cfg(target_os = "windows")]
+        return dirs::public_dir();
+
+        #[cfg(target_os = "linux")]
+        return self.prefix.public_user_dir();
+
+        
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        None
+    }
 }
