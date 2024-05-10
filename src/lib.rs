@@ -75,7 +75,12 @@ impl GameDrive {
     /// Returns the path to the C Drive
     pub fn c_drive(&self) -> PathBuf {
         #[cfg(target_os = "windows")]
-        return PathBuf::from_str("C:\\");
+		{
+			let mut path = PathBuf::new();
+			path.push(r"C:\");
+			
+			return path;
+		}
 
         #[cfg(target_os = "linux")]
         return self.prefix.get_c_drive();
