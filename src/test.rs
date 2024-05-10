@@ -141,23 +141,23 @@ pub fn universal_find_holocure_version_ini() {
     assert!(path.is_file(), "HoloCure save version.ini file within enviroment for HoloCure not found: {}", path.to_str().unwrap());
 }
 
-fn example() {
-    let res = crate::get_game_drive(2420510).map_or_else(|e| {
-        println!("Steam Dir provided is not correctly formated, ignored...");
-        e
-    }, |k| k);
-
-    if let Some(game_drive) = res {
-        if let Some(mut path) = game_drive.config_local_dir() {
-            path.push("HoloCure");
-            path.push("settings.json");
-            if let Ok(text) = std::fs::read_to_string(path) {
-                println!("{}", text);
-            }
-        } else {
-            println!("Unable to find AppData\\Local (Something has gone horribly wrong)")
-        }
-    } else {
-        println!("Unable to find game drive. Did you install the game?");
-    }
-}
+// fn example() {
+//     let res = crate::get_game_drive(2420510).map_or_else(|e| {
+//         println!("Steam Dir provided is not correctly formated, ignored...");
+//         e
+//     }, |k| k);
+//
+//     if let Some(game_drive) = res {
+//         if let Some(mut path) = game_drive.config_local_dir() {
+//             path.push("HoloCure");
+//             path.push("settings.json");
+//             if let Ok(text) = std::fs::read_to_string(path) {
+//                 println!("{}", text);
+//             }
+//         } else {
+//             println!("Unable to find AppData\\Local (Something has gone horribly wrong)")
+//         }
+//     } else {
+//         println!("Unable to find game drive. Did you install the game?");
+//     }
+// }
