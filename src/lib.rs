@@ -27,10 +27,10 @@ pub struct GameDrive {
 /// Some is returned if the proton prefix was found, but this doesn't have to be from the
 /// `$STEAM_DIR`, as it will search through all till it finds one.
 /// Search order:
-/// $STEAM_DIR (skipped if `no_tricks` or unset)
-/// ~/.steam/steam/
-/// ~/.local/share/steam/
-/// ~/.var/app/com.valvesoftware.Steam/data/Steam/
+/// - $STEAM_DIR (skipped if `no_tricks` or unset)
+/// - ~/.steam/steam/
+/// - ~/.local/share/steam/
+/// - ~/.var/app/com.valvesoftware.Steam/data/Steam/
 ///
 /// Under unsupported plattforms this return Ok(None)
 ///
@@ -72,7 +72,7 @@ pub fn get_game_drive(game_id: u32) -> Result<Option<GameDrive>, Option<GameDriv
 
 impl GameDrive {
 
-    /// Returns the path to the C Drive
+    /// Returns the path to the C Drive.
     pub fn c_drive(&self) -> PathBuf {
         #[cfg(target_os = "windows")]
 		{
@@ -91,7 +91,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs::home_dir` under Windows would
-    /// returning `C:\Users\username`
+    /// returning `C:\Users\username`.
     pub fn home_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::home_dir();
@@ -105,7 +105,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs::data_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Roaming`
+    /// returning `C:\Users\username\AppData\Roaming`.
     pub fn config_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::config_dir();
@@ -119,21 +119,23 @@ impl GameDrive {
     }
 
     /// This works like `dirs::preference_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Roaming`
-    /// this uses config_dir() internally
+    /// returning `C:\Users\username\AppData\Roaming`.
+    ///
+    /// This uses config_dir() internally.
     pub fn preference_dir(&self) -> Option<PathBuf> {
         self.config_dir()
     }
 
     /// This works like `dirs::data_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Roaming`
-    /// this uses config_dir() internally
+    /// returning `C:\Users\username\AppData\Roaming`.
+    ///
+    /// This uses config_dir() internally.
     pub fn data_dir(&self) -> Option<PathBuf> {
         self.config_dir()
     }
 
     /// This works like `dirs::config_local_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Local`
+    /// returning `C:\Users\username\AppData\Local`.
     pub fn config_local_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::config_local_dir();
@@ -146,21 +148,23 @@ impl GameDrive {
     }
 
     /// This works like `dirs::cache_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Local`
-    /// this uses config_local_dir() internally
+    /// returning `C:\Users\username\AppData\Local`.
+    ///
+    /// This uses config_local_dir() internally.
     pub fn cache_dir(&self) -> Option<PathBuf> {
         self.config_local_dir()
     }
 
     /// This works like `dirs::data_local_dir` under Windows would
-    /// returning `C:\Users\username\AppData\Local`
-    /// this uses config_local_dir() internally
+    /// returning `C:\Users\username\AppData\Local`.
+    ///
+    /// This uses config_local_dir() internally.
     pub fn data_local_dir(&self) -> Option<PathBuf> {
         self.config_local_dir()
     }
 
     /// This does not have an equivalent within dirs
-    /// it returns `C:\Users\username\AppData\LocalLow`
+    /// it returns `C:\Users\username\AppData\LocalLow`.
     pub fn config_local_low_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         {
@@ -182,7 +186,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs::audio_dir` under Windows would
-    /// returning `C:\Users\username\Music`
+    /// returning `C:\Users\username\Music`.
     pub fn audio_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::audio_dir();
@@ -196,7 +200,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs::video_dir` under Windows would
-    /// returning `C:\Users\username\Videos`
+    /// returning `C:\Users\username\Videos`.
     pub fn video_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::video_dir();
@@ -210,7 +214,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs::picture_dir` under Windows would
-    /// returning `C:\Users\username\Pictures`
+    /// returning `C:\Users\username\Pictures`.
     pub fn picture_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::picture_dir();
@@ -224,7 +228,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs:document_dir` under Windows would
-    /// returning `C:\Users\username\Documents`
+    /// returning `C:\Users\username\Documents`.
     pub fn document_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::document_dir();
@@ -238,7 +242,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs:download_dir` under Windows would
-    /// returning `C:\Users\username\Downloads`
+    /// returning `C:\Users\username\Downloads`.
     pub fn download_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::download_dir();
@@ -252,7 +256,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs:deskop_dir` under Windows would
-    /// returning `C:\Users\username\Desktop`
+    /// returning `C:\Users\username\Desktop`.
     pub fn desktop_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::desktop_dir();
@@ -266,7 +270,7 @@ impl GameDrive {
     }
 
     /// This works like `dirs:public_dir` under Windows would
-    /// returning `C:\Users\Public`
+    /// returning `C:\Users\Public`.
     pub fn public_dir(&self) -> Option<PathBuf> {
         #[cfg(target_os = "windows")]
         return dirs::public_dir();

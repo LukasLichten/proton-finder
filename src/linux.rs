@@ -20,14 +20,16 @@ fn expand_tilde(str: &str) -> Option<PathBuf> {
     }
 }
 
-/// This will still return the value, even if `no_tricks` is set
 /// Returns the value in env `$STEAM_DIR` (if set)
+///
+/// This will still return the value, even if `no_tricks` is set
 pub fn get_steam_dir_env_value() -> Option<OsString> {
     env::var_os(ENV_STEAM_DIR)
 }
 
-/// This will still return the value, even if `no_tricks` is set
 /// Returns the path set in env `$STEAM_DIR`
+///
+/// This will still return the value, even if `no_tricks` is set
 /// If no path was set returns Err(false)
 /// If the value set was not a valid path (or did not exist) returns Err(true)
 pub fn get_steam_dir_env_path() -> Result<PathBuf, bool> {
@@ -66,7 +68,8 @@ impl SteamRoot {
     /// compatdata still in the steamroot).
     ///
     /// This is based on the libraryfolder.vdf file, which steam updates infrequently, meaning if
-    /// you just moved the game it will still be noted with it's old location
+    /// you just moved the game it will still be noted with it's old location (so this value is
+    /// unfortunatly not that reliable)
     pub fn get_install_library(&self, game_id: u32) -> Option<SteamLibrary> {
         let vdf = self.read_library_folders_vdf_file()?;
         let game_id = game_id.to_string();
@@ -146,8 +149,11 @@ impl SteamRoot {
     }
 
     /// Reads the libraryfolders file for this streamroot,
-    /// returning on success the contained "libraryfolders" struct,
-    /// so you can directly access the libraries (rather then with the root object)
+    /// returning on success the contained "libraryfolders" struct (so you can directly access the
+    /// libraries).  
+    ///
+    /// This is in contrast to calling `parse_vdf_file` manually, which would give you the root
+    /// object that contains this struct under said key (so this function here saves you one step).
     pub fn read_library_folders_vdf_file(&self) -> Option<VdfStruct> {
         let mut path = self.get_steamapps_folder();
         path.push("libraryfolders.vdf");
@@ -162,7 +168,9 @@ impl SteamRoot {
     }
 }
 
-/// This is mainly used to parse the libraryfolders.vdf
+/// Parses a vdf file at the given location
+///
+/// This was made to parse the libraryfolders.vdf,
 /// so other vdf files might not get properly parsed
 pub fn parse_vdf_file(file_path: &PathBuf) -> Option<VdfStruct> {
 
@@ -237,7 +245,7 @@ pub fn parse_vdf_file(file_path: &PathBuf) -> Option<VdfStruct> {
     parse_struct(&mut reader, true)
 }
 
-/// Represents a Vdf Complextype with multiple key value pairs, which can be further nested structs
+/// Represents a Vdf Complextype with multiple key value pairs, where the value can be further nested structs
 #[derive(Debug, Clone)]
 pub struct VdfStruct {
     pub pairs: HashMap<String, VdfValue>
@@ -245,7 +253,7 @@ pub struct VdfStruct {
 
 /// Represents the two value types for vdf:
 /// - Simpletype, which is a String value on the same line as it's key
-/// - Complextype, which is a struct started in th next line with a {
+/// - Complextype, which is a struct started with { and ended with } on seperate lines
 #[derive(Debug, Clone)]
 pub enum VdfValue {
     Complex(VdfStruct),
@@ -278,6 +286,7 @@ impl SteamLibrary {
     }
 
     /// Attempts to find the prefix for a given game via it's game id.  
+    ///
     /// This only checks if there is a prefix for the game in THIS library, so:  
     /// - The game might be installed here, but the prefix is left in the root (Steamdeck SD-Card behavior)
     /// - There is leftover data from the game being here that has not been cleaned up (you get a
@@ -366,8 +375,9 @@ pub fn steam_root_from(path: PathBuf) -> Option<SteamRoot> {
     None
 }
 
-/// This will still return the value, even if `no_tricks` is set
 /// Returns the steam root from the path set in env `$STEAM_DIR`
+///
+/// This will still return the value, even if `no_tricks` is set
 /// If no path was set returns Err(false)
 /// If the value set was not a valid path (or did not exist) returns Err(true)
 pub fn steam_root_env() -> Result<SteamRoot, bool> {
@@ -380,16 +390,17 @@ const STEAM_LOCAL_SHARE: &str = "~/.local/share/Steam";
 const STEAM_FLATPAK: &str = "~/.var/app/com.valvesoftware.Steam/data/Steam/";
 
 /// Returns the first steam root found.
+///
 /// The Result indicates if an invalid `STEAM_DIR` was set (if you set `no_tricks` you can disgard
 /// all Err, it will always return Ok). It return Ok on unset `STEAM_DIR`
 /// Err(Some(other)) indicates another standard steam root was found, Err(None) that none.
 /// Similarly, Ok(Some(root)) indicates the a root was found (this is the first one), Ok(None) indicates no root was found
 ///
 /// The order in which steam roots are found is:
-/// $STEAM_DIR (skipped if `no_tricks`)
-/// ~/.steam/steam/
-/// ~/.local/share/steam/
-/// ~/.var/app/com.valvesoftware.Steam/data/Steam/
+/// - $STEAM_DIR (skipped if `no_tricks`)
+/// - ~/.steam/steam/
+/// - ~/.local/share/steam/
+/// - ~/.var/app/com.valvesoftware.Steam/data/Steam/
 pub fn find_steam_root() -> Result<Option<SteamRoot>, Option<SteamRoot>> {
     let err = if cfg!(not(no_tricks)) {
         match steam_root_env() {
@@ -433,15 +444,16 @@ pub fn find_steam_root() -> Result<Option<SteamRoot>, Option<SteamRoot>> {
 }
 
 /// Returns all the steam roots found.
+///
 /// The Result indicates if an invalid `STEAM_DIR` was set (if you set `no_tricks` you can disgard
 /// all Err, it will always return Ok). It return Ok on unset `STEAM_DIR`
 /// If ~/.steam/steam symlinks to ~/.local/share/steam/ then the path will be included only once
 ///
 /// The order in which steam roots are found is:
-/// $STEAM_DIR (skipped if `no_tricks`)
-/// ~/.steam/steam/
-/// ~/.local/share/steam/
-/// ~/.var/app/com.valvesoftware.Steam/data/Steam/
+/// - $STEAM_DIR (skipped if `no_tricks`)
+/// - ~/.steam/steam/
+/// - ~/.local/share/steam/
+/// - ~/.var/app/com.valvesoftware.Steam/data/Steam/
 pub fn find_all_steam_roots() -> Result<Vec<SteamRoot>, Vec<SteamRoot>> {
     // it will be rare we even get above 2, but still...
     let mut roots = Vec::<SteamRoot>::with_capacity(4);
@@ -648,6 +660,7 @@ impl ProtonPrefix {
 }
 
 /// Returns the first prefix found for this game.
+///
 /// There is a chance there are multiple prefixes through multiple steam installs.
 /// The Result indicates if an invalid `STEAM_DIR` was set (if you set `no_tricks` you can disgard
 /// all Err, it will always return Ok). It returns Ok on unset `STEAM_DIR`
@@ -655,10 +668,10 @@ impl ProtonPrefix {
 /// set `STEAM_DIR`.
 ///
 /// The search order is:
-/// $STEAM_DIR (skipped if `no_tricks`)
-/// ~/.steam/steam/
-/// ~/.local/share/steam/
-/// ~/.var/app/com.valvesoftware.Steam/data/Steam/
+/// - $STEAM_DIR (skipped if `no_tricks`)
+/// - ~/.steam/steam/
+/// - ~/.local/share/steam/
+/// - ~/.var/app/com.valvesoftware.Steam/data/Steam/
 pub fn find_prefix(game_id: u32) -> Result<Option<ProtonPrefix>, Option<ProtonPrefix>> {
     let (roots, err) = match find_all_steam_roots() {
         Err(res) => (res, true),
@@ -681,15 +694,16 @@ pub fn find_prefix(game_id: u32) -> Result<Option<ProtonPrefix>, Option<ProtonPr
 }
 
 /// Returns all prefixes found for this game.
+///
 /// There is a chance there are multiple prefixes through multiple steam installs.
 /// The Result indicates if an invalid `STEAM_DIR` was set (if you set `no_tricks` you can disgard
 /// all Err, it will always return Ok). It returns Ok on unset `STEAM_DIR`
 ///
 /// The search order is:
-/// $STEAM_DIR (skipped if `no_tricks`)
-/// ~/.steam/steam/
-/// ~/.local/share/steam/
-/// ~/.var/app/com.valvesoftware.Steam/data/Steam/
+/// - $STEAM_DIR (skipped if `no_tricks`)
+/// - ~/.steam/steam/
+/// - ~/.local/share/steam/
+/// - ~/.var/app/com.valvesoftware.Steam/data/Steam/
 pub fn find_all_prefixes(game_id: u32) -> Result<Vec<ProtonPrefix>, Vec<ProtonPrefix>> {
     let mut prefixes = Vec::<ProtonPrefix>::with_capacity(4);
     let (roots, err) = match find_all_steam_roots() {

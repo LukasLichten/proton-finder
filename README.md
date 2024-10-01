@@ -12,7 +12,7 @@ So this library provides functions to allow abstracting these prefixes away,
 so you can access the same folders on Windows and Linux through universal functions.  
   
 Additional `linux` modul is available when the target_os is Linux, which allows rawer access,  
-including allow also opening wine prefixes and reading .reg Registry files from the prefix.  
+including opening wine prefixes and reading .reg Registry files from the prefix.  
   
 
 ## Example
@@ -38,10 +38,10 @@ if let Some(game_drive) = res {
 This reads the settings.json for the game HoloCure
 
 ## Steam root folder priority
-Per default, if the env value `$STEAM_DIR` (same as Protontricks) it will use this as the first steam root to search.  
-You can disable the automatic reading of the env with the `no_tricks` features.
+Per default, if the env value `$STEAM_DIR` (same as Protontricks) is set it will use this as the first steam root to search.  
+You can disable the automatic reading of this env value with the `no_tricks` features.
 
-This is followed by checking:  
+After that check the remaining search oder is this:  
 `~/.steam/steam`  
 `~/.local/share/Steam`  
 `~/.var/app/com.valvesoftware.Steam/data/Steam/` (Flatpak)  
