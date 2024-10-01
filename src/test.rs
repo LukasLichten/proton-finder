@@ -14,6 +14,62 @@ pub fn find_steam_root() {
 }
 
 #[cfg(target_os = "linux")]
+#[test]
+pub fn read_libraries_file_manual() {
+    // We test the vdf parser on the libraries file 
+    //
+    // As such this fails if steam is not installed
+    let root = match crate::linux::find_steam_root() {
+        Ok(res) => res,
+        Err(res) => res
+    };
+    assert!(root.is_some(), "Unable to find any steam install");
+    let root = root.unwrap();
+
+    let mut path = root.get_steamapps_folder();
+    path.push("libraryfolders.vdf");
+
+    assert!(path.exists(), "libraries.vdf file does not exist? {}", path.to_str().unwrap());
+
+    let res = crate::linux::parse_vdf_file(&path);
+    assert!(res.is_some(), "Failed to parse libraries file");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+pub fn read_libraries_file() {
+    // We test the vdf parser on the libraries file 
+    //
+    // As such this fails if steam is not installed
+    let root = match crate::linux::find_steam_root() {
+        Ok(res) => res,
+        Err(res) => res
+    };
+    assert!(root.is_some(), "Unable to find any steam install");
+    let root = root.unwrap();
+
+    let res = root.read_library_folders_vdf_file();
+    assert!(res.is_some(), "Failed to parse libraries file");
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+pub fn find_install_library() {
+    // We try to find the library in which HoloCure is installed 
+    //
+    // As such this fails if steam is not installed, and if the vdf parses failed
+    let root = match crate::linux::find_steam_root() {
+        Ok(res) => res,
+        Err(res) => res
+    };
+    assert!(root.is_some(), "Unable to find any steam install");
+    let root = root.unwrap();
+
+    let res = root.get_install_library(2420510);
+    assert!(res.is_some(), "Install location of Holocure not found, is it not installed?");
+}
+
+#[cfg(target_os = "linux")]
 fn find_prefix_helper(game_id: u32) -> crate::linux::ProtonPrefix {
     let prefix = match crate::linux::find_prefix(game_id) {
         Ok(res) => res,

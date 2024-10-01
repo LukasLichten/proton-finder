@@ -45,6 +45,7 @@ pub fn get_steam_dir_env_path() -> Result<PathBuf, bool> {
 }
 
 /// An existing steamroot folder with steamapps and steamruntime
+#[derive(Debug, Clone)]
 pub struct SteamRoot {
     path: PathBuf,
     steamapps: PathBuf
@@ -60,7 +61,230 @@ impl SteamRoot {
         self.steamapps.clone()
     }
 
+    /// Returns the library in which the game is installed.
+    /// The game prefix data might be elsewhere (like with the Steamdeck SD-card libraries store
+    /// compatdata still in the steamroot).
+    ///
+    /// This is based on the libraryfolder.vdf file, which steam updates infrequently, meaning if
+    /// you just moved the game it will still be noted with it's old location
+    pub fn get_install_library(&self, game_id: u32) -> Option<SteamLibrary> {
+        let vdf = self.read_library_folders_vdf_file()?;
+        let game_id = game_id.to_string();
+
+        for (_,lib) in vdf.pairs.iter() {
+            if let VdfValue::Complex(lib) = lib {
+                
+                // Extracting necessary values
+                if let (Some(VdfValue::Simple(path)),Some(VdfValue::Complex(apps))) = (lib.pairs.get("path"), lib.pairs.get("apps")) {
+                    
+                    if apps.pairs.contains_key(&game_id) {
+                        // Found the game
+                        
+                        let buf = PathBuf::from_str(path).ok()?;
+                        return SteamLibrary::from_path(&buf);
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     /// Attempts to find the prefix for a given game via it's game id
+    pub fn get_prefix(&self, game_id: u32) -> Option<ProtonPrefix> {
+        if let Some(lib) = self.get_install_library(game_id) {
+            if let Some(pre) = lib.get_prefix(game_id) {
+                // Found prefix already
+                return Some(pre);
+            }
+        }
+
+        // As a fallback we iterate through all libraries
+        // Especially duye to the vdf being potentially out of date
+        for lib in self.get_libraries() {
+            if let Some(pre) = lib.get_prefix(game_id) {
+                // Found prefix already
+                return Some(pre);
+            }
+        }
+
+        // Root is "garanteed" to be included, so no need to recheck
+        None
+    }
+
+    /// Returns you all libraries part of this steamroot
+    /// This function always returns at least 1 result, that being the root library
+    pub fn get_libraries(&self) -> Vec<SteamLibrary> {
+        let mut res = Vec::<SteamLibrary>::new();
+
+        if let Some(vdf) = self.read_library_folders_vdf_file() {
+            // Iterating over all entires
+            for (_,lib) in vdf.pairs.iter() {
+                if let VdfValue::Complex(lib) = lib {
+
+                    // retrieving the path for this library
+                    if let Some(VdfValue::Simple(p)) = lib.pairs.get("path") {
+                        
+                        // Parsing into wrapper
+                        if let Ok(path) = PathBuf::from_str(p) {
+                            if let Some(item) = SteamLibrary::from_path(&path) {
+                                res.push(item);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        if res.is_empty() {
+            // Fallback to garantee at least the root exists
+            res.push(SteamLibrary { steamapps: self.get_steamapps_folder(), is_root: true });
+        }
+
+        res
+    }
+
+    /// Reads the libraryfolders file for this streamroot,
+    /// returning on success the contained "libraryfolders" struct,
+    /// so you can directly access the libraries (rather then with the root object)
+    pub fn read_library_folders_vdf_file(&self) -> Option<VdfStruct> {
+        let mut path = self.get_steamapps_folder();
+        path.push("libraryfolders.vdf");
+
+        // We use remove here to avoid a clone call
+        let mut vdf = parse_vdf_file(&path)?;
+        if let Some(VdfValue::Complex(res)) = vdf.pairs.remove("libraryfolders") {
+            Some(res)
+        } else {
+            None
+        }
+    }
+}
+
+/// This is mainly used to parse the libraryfolders.vdf
+/// so other vdf files might not get properly parsed
+pub fn parse_vdf_file(file_path: &PathBuf) -> Option<VdfStruct> {
+
+    // Parses structs recusrively
+    fn parse_struct(reader: &mut BufReader<File>, root: bool) -> Option<VdfStruct> {
+        let mut obj = VdfStruct { pairs: HashMap::new() };
+        
+        let mut line = String::new();
+        while let Ok(length) = reader.read_line(&mut line) {
+            // EOF detection
+            if length == 0 {
+                if root {
+                    return Some(obj);
+                } else {
+                    return None;
+                }
+            }
+
+            let trimed = line.trim();
+            
+            if trimed == "}" {
+                // Object ended
+                return Some(obj);
+            }
+
+            // Key parsing
+            if let Some(part) = trimed.strip_prefix('"') {
+                let (key, part) = part.split_once('"')?;
+
+                let part_trimed = part.trim();
+
+                let (key, value) = if let Some((_,val_untrimmed)) = part_trimed.split_once('"') {
+                    // This handles simpletype
+                    let (val,_) = val_untrimmed.split_once('"')?;
+                    (key.to_string(), VdfValue::Simple(val.to_string()))
+                } else {
+                    // This handles complextype by reading another line to find the bracket
+                    // open, and then do recursion
+                    let key = key.to_string();
+
+                    line.clear();
+                    if reader.read_line(&mut line).ok()? == 0 {
+                        // EOF between the key and the struct
+                        return None;
+                    }
+
+                    let trimed = line.trim();
+                    if trimed != "{" {
+                        // Unexpected symbol
+                        return None;
+                    }
+
+                    let s = parse_struct(reader, false)?;
+                    (key, VdfValue::Complex(s))
+                };
+
+                obj.pairs.insert(key, value);
+            } else if !trimed.is_empty() {
+                return None;
+            };
+
+            line.clear();
+        }
+
+        None
+    }
+
+
+    let file = File::open(file_path).ok()?;
+    let mut reader = BufReader::new(file);
+
+    parse_struct(&mut reader, true)
+}
+
+/// Represents a Vdf Complextype with multiple key value pairs, which can be further nested structs
+#[derive(Debug, Clone)]
+pub struct VdfStruct {
+    pub pairs: HashMap<String, VdfValue>
+}
+
+/// Represents the two value types for vdf:
+/// - Simpletype, which is a String value on the same line as it's key
+/// - Complextype, which is a struct started in th next line with a {
+#[derive(Debug, Clone)]
+pub enum VdfValue {
+    Complex(VdfStruct),
+    Simple(String)
+}
+
+
+/// Wrapper around a SteamLibrary with a compatdata folder
+#[derive(Debug, Clone)]
+pub struct SteamLibrary {
+    steamapps: PathBuf,
+    is_root: bool
+}
+
+
+impl SteamLibrary {
+    /// Produces a new wrapper for the given location, as long as a compatdata folder is present
+    ///
+    /// Important: You are passing in the library folder, as set in steam, not the contained
+    /// steamapps folder!
+    pub fn from_path(lib: &PathBuf) -> Option<Self> {
+        let mut apps = has_steamapps(lib)?;
+        apps.push("compatdata");
+        if !apps.exists() {
+            return None;
+        }
+        apps.pop();
+        
+        Some(Self { steamapps: apps, is_root: has_runtime(lib) })
+    }
+
+    /// Attempts to find the prefix for a given game via it's game id.  
+    /// This only checks if there is a prefix for the game in THIS library, so:  
+    /// - The game might be installed here, but the prefix is left in the root (Steamdeck SD-Card behavior)
+    /// - There is leftover data from the game being here that has not been cleaned up (you get a
+    /// prefix then, but you shouldn't use it, as it is irrelevant to the current install of the game)
+    /// - The game is in another library (then you need to check the other Libaries).
+    /// 
+    /// In general, it is better to just SteamRoot, as this compensates for these anomalies
     pub fn get_prefix(&self, game_id: u32) -> Option<ProtonPrefix> {
         let mut path = self.steamapps.clone();
         path.push("compatdata");
@@ -74,7 +298,30 @@ impl SteamRoot {
 
         None
     }
+
+    /// The steamapps folder from this steam library
+    pub fn get_steamapps_folder(&self) -> PathBuf {
+        self.steamapps.clone()
+    }
+
+    /// If this is the root library (and only if),
+    /// then you will be able to retrieve the Steamroot from it again
+    pub fn convert_to_steamroot(&self) -> Option<SteamRoot> {
+        if self.is_root {
+            let mut folder = self.steamapps.clone();
+            folder.pop();
+            steam_root_from(folder)
+        } else {
+            None
+        }
+    }
+
+    /// Retruns if this Library is the one and only root library
+    pub fn is_root(&self) -> bool {
+        self.is_root
+    }
 }
+
 
 fn has_runtime(steam_root: &PathBuf) -> bool {
     let mut steam_runtime = steam_root.clone();
@@ -257,6 +504,7 @@ const REG_VOLATILE: &str = "Volatile Environment";
 
 /// The Proton Prefix for a specfic game, containing the windows like enviroment in which save
 /// files and the like are stored
+#[derive(Debug, Clone)]
 pub struct ProtonPrefix {
     game: u32,
     pfx: PathBuf
@@ -462,6 +710,7 @@ pub fn find_all_prefixes(game_id: u32) -> Result<Vec<ProtonPrefix>, Vec<ProtonPr
 }
 
 /// Acts as a wrapper for reading registry entries
+#[derive(Debug)]
 pub struct RegParser {
     reg: File
 }
